@@ -27,9 +27,13 @@ This tool is provided as-is, with no guarantees of maintenance or support. I tak
 ### Usage
 
 - Open the game in the browser.  You will see a button titled `Edit Stats` next to the other buttons. Click on it.
+  
 - If you wish to edit **global variables**, then click on `Edit Globals`. Iḟ you wish to edit **temp variables**, then click on `Edit temps`.
+  
 - It will show a search box, search for the stat you are looking for and change it.
+  
 - To freeze the stat, tick the checkbox next to it.
+  
 - Click on Save.
 
 
