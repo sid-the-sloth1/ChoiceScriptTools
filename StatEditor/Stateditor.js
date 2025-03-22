@@ -28,7 +28,7 @@
             const box = createElement("div", { class: "hardy" });
             box.innerHTML = `
             <div class="hardy_buttons_div">    
-            <button id="editStats">Edit Stats</button>
+            <button id="editStats">Edit Globals</button>
             <button id="editTemps">Edit Temps</button>
             <button id="closeEditorDiv" onclick="hardyWindowInjectedFuncCloseBox()">Close</button>
             <button id="unfreezeAll" >Unfreeze All</button>
@@ -390,25 +390,19 @@
         const info = await readFromStore(store, "hardy_frozen_stats", true);
         const toBeReturned = info ? info : { "mainStats": [], "temps": {} };
         window.frozenStats = toBeReturned.mainStats;
-        const frozenTemps = toBeReturned.temps[window.stats.scene.name];
-        if (frozenTemps) {
-            window.frozenTemps = frozenTemps;
-        } else {
-            window.frozenTemps = [];
-        }
-        window.frozenScene = window.stats.scene.name;
+        window.frozenTemps = toBeReturned.temps;
+        
         return toBeReturned;
     }
 
     async function setFrozenStats(store, value) {
         await writeToStore(store, "hardy_frozen_stats", value, true);
         window.frozenStats = value.mainStats;
-        window.frozenScene = window.stats.scene.name;
-        const frozenTemps = value.temps[window.stats.scene.name];
+        const frozenTemps = value.temps;
         if (frozenTemps) {
             window.frozenTemps = frozenTemps;
         } else {
-            window.frozenTemps = [];
+            window.frozenTemps = {};
         }
         console.log("Frozen stats saved successfully.");
     }
@@ -427,7 +421,7 @@
                 console.error("Failed to delete frozen stats.");
             } else {
                 window.frozenStats = [];
-                window.frozenTemps = [];
+                window.frozenTemps = {};
                 console.log("Frozen stats deleted successfully.");
                 alertify.success("All stats unfrozen successfully.");
             }
@@ -468,10 +462,13 @@
         }
     };
     waitForElement("p#buttons").then((element) => {
-        const frozen = getFrozenStats(initStore());
         const button = createElement("button", { "class": "spacedLink", "id": "hardyButton", "onclick": "hardyCOGButtonClickHandle()" });
         button.innerText = "Edit Stats";
         element.appendChild(button);
+        getFrozenStats(initStore()).then((frozenStatsAll)=> {
+            window.frozenStats = frozenStatsAll.mainStats;
+            window.frozenTemps = frozenStatsAll.temps;
+        });
     });
 
 
@@ -757,20 +754,24 @@ Scene.prototype.set = function (line) {
         throw new Error(this.lineMsg() + "Non-existent variable '" + variable + "'");
     }
 
+    
     //
     const lowerCaseVariable = variable.toLowerCase();
     if ("undefined" !== typeof this.stats[lowerCaseVariable]) {
         const frozen = window.frozenStats || [];
         if (frozen.includes(lowerCaseVariable)) {
+            //console.log("Frozen stats found for variable " + variable);
             return;
         }
     } else if ("undefined" !== typeof this.temps[lowerCaseVariable]) {
-        if (this.name === window.frozenScene) {
-            const frozenTemps = window.frozenTemps || [];
-            if (frozenTemps.includes(lowerCaseVariable)) {
+        const sceneName = this.name;
+        const frozenTemps = window.frozenTemps || {};
+        if (frozenTemps && frozenTemps[sceneName]) {
+            if (frozenTemps[sceneName].includes(lowerCaseVariable)) {
+                //console.log("Frozen temps found for variable " + variable);
                 return;
             }
-        }
+        };
     }
     // 
 
@@ -784,4 +785,5 @@ Scene.prototype.set = function (line) {
 
     var value = this.evaluateExpr(stack);
     this.setVar(variable, value);
+
 };
