@@ -1,6 +1,22 @@
 (function () {
     'use strict';
 
+    const arrayofForbiddenWords = [
+        "implicit_control_flow",
+        "choice_reuse",
+        "choice_user_restored",
+        "_choiceEnds",
+        "_looplimit",
+        "choice_crc",
+        "choice_purchased_adfree",
+        "choice_purchased_everything",
+        "choice_purchase_supported",
+        "choice_title",
+        "scene",
+        "sceneName"
+    ]
+
+
     let stats = {};
     let arrayOfMainStats = [];
     let arrayOfTempStats = [];
@@ -61,6 +77,7 @@
                         resultDivMain.innerHTML = "";
                         arrayOfMainStats = [];
                         arrayOfTempStats = [];
+                        inputMain.value = "";
                     });
 
                     tempStatsBtn.addEventListener("click", () => {
@@ -69,24 +86,36 @@
                         resultDivTemp.innerHTML = "";
                         arrayOfMainStats = [];
                         arrayOfTempStats = [];
+                        inputTemp.value = "";
                     });
 
                     box.querySelector("#statSaveMain").addEventListener("click", () => {
                         saveStatsMain(resultDivMain, store, frozenStats, frozenStatsAll);
                     });
-                    box.querySelector("#closeMainStats").addEventListener("click", () =>
-                        closeBox(box)
-                    );
+                    box.querySelector("#closeMainStats").addEventListener("click", () => {
+                        //closeBox(box);
+                        statsMainDiv.classList.toggle("hide");
+                        resultDivMain.innerHTML = "";
+                        arrayOfMainStats = [];
+                        arrayOfTempStats = [];
+                        inputMain.value = "";
+
+                    });
 
                     inputMain.addEventListener("input", () => searchMainStats(inputMain.value, resultDivMain, frozenStats));
 
-                    box.querySelector("#statSaveTemp").addEventListener("click", ()=> {
+                    box.querySelector("#statSaveTemp").addEventListener("click", () => {
                         saveStatsTemp(resultDivTemp, store, frozenTemps, frozenStatsAll);
                     });
                     inputTemp.addEventListener("input", () => searchTempStats(inputTemp.value, resultDivTemp, frozenTemps));
-                    box.querySelector("#closeTempStats").addEventListener("click", () =>
-                        closeBox(box)
-                    );
+                    box.querySelector("#closeTempStats").addEventListener("click", () => {
+                        //closeBox(box);
+                        statsTempDiv.classList.toggle("hide");
+                        resultDivTemp.innerHTML = "";
+                        arrayOfMainStats = [];
+                        arrayOfTempStats = [];
+                        inputTemp.value = "";
+                    });
 
                     unfreezeAllBtn.addEventListener("click", () => {
                         deleteFrozenStats(store);
@@ -101,10 +130,10 @@
 
 
     function saveStatsMain(resultDivMain, store, frozenStats, frozenStatsAll) {
-        const obj ={"mainStats": {}, "temps": {}};
+        const obj = { "mainStats": {}, "temps": {} };
         stats = window.stats ?? {};
         arrayOfMainStats.forEach(prop => {
-            if (prop === "sceneName") return;
+            if (arrayofForbiddenWords.includes(prop)) return;
             const input = resultDivMain.querySelector(`div[name="${prop}"] input[type="text"]`);
             if (!input) return;
 
@@ -117,9 +146,12 @@
             }[typeof stats[prop]];
 
             obj.mainStats[prop] = stats[prop];
-            const checkboxes = resultDivMain.querySelectorAll(`div[name="${prop}"] input[type="checkbox"]`);
-            for (const checkbox of checkboxes) {
-                const statName = checkbox.getAttribute("data-name");
+
+        });
+        const checkboxes = resultDivMain.querySelectorAll(`input[type="checkbox"]`);
+        for (const checkbox of checkboxes) {
+            const statName = checkbox.getAttribute("data-name");
+            if (!arrayofForbiddenWords.includes(statName)) {
                 const isChecked = checkbox.checked;
                 if (isChecked) {
                     if (!frozenStats.includes(statName)) {
@@ -132,9 +164,10 @@
                     }
                 }
             }
-            frozenStatsAll.mainStats = frozenStats;
-            setFrozenStats(store, frozenStatsAll);
-        });
+        }
+        frozenStatsAll.mainStats = frozenStats;
+        setFrozenStats(store, frozenStatsAll);
+
         window.stats = stats;
         arrayOfMainStats = [];
         saveStatsToStorage("", obj);
@@ -145,8 +178,9 @@
 
     function saveStatsTemp(resultDivTemp, store, frozenTemps, frozenStatsAll) {
         stats = window.stats ?? {};
-        const obj ={"mainStats": {}, "temps": {}};
+        const obj = { "mainStats": {}, "temps": {} };
         arrayOfTempStats.forEach(prop => {
+            if (arrayofForbiddenWords.includes(prop)) return;
             const input = resultDivTemp.querySelector(`div[name="${prop}_temp"] input`);
             if (!input) return;
 
@@ -159,11 +193,14 @@
             }[typeof stats.scene.temps[prop]];
             obj.temps[prop] = stats.scene.temps[prop];
 
-            const checkboxes = resultDivTemp.querySelectorAll(`div[name="${prop}_temp"] input[type="checkbox"]`);
-           
-            for (const checkbox of checkboxes) {
-                //console.log(checkbox)
-                const statName = checkbox.getAttribute("data-name");
+        });
+
+        const checkboxes = resultDivTemp.querySelectorAll(`input[type="checkbox"]`);
+
+        for (const checkbox of checkboxes) {
+            //console.log(checkbox)
+            const statName = checkbox.getAttribute("data-name");
+            if (!arrayofForbiddenWords.includes(statName)) {
                 const isChecked = checkbox.checked;
                 if (isChecked) {
                     if (!frozenTemps.includes(statName)) {
@@ -176,9 +213,12 @@
                     }
                 }
             }
-            frozenStatsAll.temps[window.stats.scene.name] = frozenTemps;
-            setFrozenStats(store, frozenStatsAll);
-        });
+        }
+        frozenStatsAll.temps[window.stats.scene.name] = frozenTemps;
+        setFrozenStats(store, frozenStatsAll);
+
+
+
         window.stats = stats;
         arrayOfTempStats = [];
         saveStatsToStorage("", obj);
@@ -248,7 +288,7 @@
                         savedTemps[stat] = changedTemps[stat];
                     }
 
-                    window.store.set(`state${slot}`, JSON.stringify(state), function(callback) {});
+                    window.store.set(`state${slot}`, JSON.stringify(state), function (callback) { });
                 } catch (e) {
                     console.error(e);
                 }
@@ -395,7 +435,7 @@
     }
 
 
-    
+
 
     window.hardyCOGButtonClickHandle = async function () {
         const button = document.querySelector("#hardyButton");
@@ -691,18 +731,19 @@ body input:focus {
 }
 
  
-        `);    
+        `);
 
 
-//size changing 
-//addStyle(`body{background-color:#121212!important}#main{font-size:20px!important} body{color:#e0e0e0!important}`)
+    //size changing 
+    //addStyle(`body{background-color:#121212!important}#main{font-size:20px!important} body{color:#e0e0e0!important}`)
 
 
-
-ensureDocumentAccessible().then(() => {
-    document.body.classList.add("nightmode");
-    addStyle(`#main{font-size:20px!important}`);
-});
+    /*
+    ensureDocumentAccessible().then(() => {
+        document.body.classList.add("nightmode");
+        addStyle(`#main{font-size:20px!important}`);
+    });
+    */
 })();
 
 
@@ -716,7 +757,7 @@ Scene.prototype.set = function (line) {
         throw new Error(this.lineMsg() + "Non-existent variable '" + variable + "'");
     }
 
-//
+    //
     const lowerCaseVariable = variable.toLowerCase();
     if ("undefined" !== typeof this.stats[lowerCaseVariable]) {
         const frozen = window.frozenStats || [];
