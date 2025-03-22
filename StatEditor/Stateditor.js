@@ -101,8 +101,10 @@
 
 
     function saveStatsMain(resultDivMain, store, frozenStats, frozenStatsAll) {
+        const obj ={"mainStats": {}, "temps": {}};
         stats = window.stats ?? {};
         arrayOfMainStats.forEach(prop => {
+            if (prop === "sceneName") return;
             const input = resultDivMain.querySelector(`div[name="${prop}"] input[type="text"]`);
             if (!input) return;
 
@@ -113,6 +115,8 @@
                 number: Number(value) || 0,
                 boolean: value.toLowerCase() === "true",
             }[typeof stats[prop]];
+
+            obj.mainStats[prop] = stats[prop];
             const checkboxes = resultDivMain.querySelectorAll(`div[name="${prop}"] input[type="checkbox"]`);
             for (const checkbox of checkboxes) {
                 const statName = checkbox.getAttribute("data-name");
@@ -133,11 +137,15 @@
         });
         window.stats = stats;
         arrayOfMainStats = [];
+        saveStatsToStorage("", obj);
+        saveStatsToStorage("temp", obj);
+        //saveStatsToStorage("backup", obj);
         alertify.success("Stats saved successfully. Go to next page for the changes to take effect.");
     };
 
     function saveStatsTemp(resultDivTemp, store, frozenTemps, frozenStatsAll) {
         stats = window.stats ?? {};
+        const obj ={"mainStats": {}, "temps": {}};
         arrayOfTempStats.forEach(prop => {
             const input = resultDivTemp.querySelector(`div[name="${prop}_temp"] input`);
             if (!input) return;
@@ -149,6 +157,8 @@
                 number: Number(value) || 0,
                 boolean: value.toLowerCase() === "true",
             }[typeof stats.scene.temps[prop]];
+            obj.temps[prop] = stats.scene.temps[prop];
+
             const checkboxes = resultDivTemp.querySelectorAll(`div[name="${prop}_temp"] input[type="checkbox"]`);
            
             for (const checkbox of checkboxes) {
@@ -171,6 +181,9 @@
         });
         window.stats = stats;
         arrayOfTempStats = [];
+        saveStatsToStorage("", obj);
+        saveStatsToStorage("temp", obj);
+        //saveStatsToStorage("backup", obj);
         alertify.success("Stats saved successfully. Go to next page for the changes to take effect.");
     };
 
@@ -215,6 +228,31 @@
                     resolve();
                 }
             }, 50);
+        });
+    }
+    function saveStatsToStorage(slot, obj) {
+        window.store.get(`state${slot}`, function (ok, value) {
+            if (ok) {
+                try {
+                    const state = JSON.parse(value);
+                    const savedMainStats = state.stats;
+                    const savedTemps = state.temps;
+
+                    const changedMainStats = obj.mainStats;
+                    const changedTemps = obj.temps;
+
+                    for (const stat in changedMainStats) {
+                        savedMainStats[stat] = changedMainStats[stat];
+                    }
+                    for (const stat in changedTemps) {
+                        savedTemps[stat] = changedTemps[stat];
+                    }
+
+                    window.store.set(`state${slot}`, JSON.stringify(state), function(callback) {});
+                } catch (e) {
+                    console.error(e);
+                }
+            }
         });
     }
 
@@ -399,374 +437,310 @@
 
 
     addStyle(`
-        /* Sepia Mode Styles */
-body .hardy { 
-    color: #5b4636 !important; 
-    background-color: #f4ecd8 !important; 
-    border: 1px solid #c4a484; 
-    border-radius: 10px; 
-    padding: 12px; 
-    margin-top: 12px; 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); 
+       
+
+body .hide {
+    display: none !important;
+}
+body .disabled {
+    pointer-events: none !important;
+    opacity: 0.5;
 }
 
-body #editStats:hover,
-body #editTemps:hover,
-body #statSaveMain,
-body #statSaveTemp { 
-    background-color: #c4a484; 
-    color: #3e2c20; 
+body .hardy {
+    color: #5b4636 !important;
+    background-color: #edebe6 !important;
+    border: 1px solid #c4a484;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+body.nightmode .hardy {
+    color: #e0e0e0 !important;
+    background-color: #1e1e1e !important;
+    border: 1px solid #4a90e2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
 }
 
-body .hide { display: none !important; }
-body .disabled { pointer-events: none !important; opacity: 0.5; }
+body.whitemode .hardy {
+    background-color: #f5f5f5 !important;
+    border: 1px solid #4a90e2;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #121212 !important;
+}
 
-body .hardy_buttons_div { display: flex; gap: 8px; margin-bottom: 12px; }
+body .hardy_buttons_div {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
 
 body #editStats,
-body #editTemps { 
-    background-color: #e3d2b8; 
-    color: #5b4636; 
-    border: 1px solid #c4a484; 
-    border-radius: 4px; 
-    padding: 6px 14px; 
-    cursor: pointer; 
-    transition: background 0.3s, color 0.3s; 
+body #editTemps {
+    background-color: #eae3d8;
+    color: #5b4636;
+    border: 1px solid #c4a484;
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+}
+body.whitemode #editStats,
+body.whitemode #editTemps {
+    background-color: #eae7e7;
+    color: #1168cf;
+    border: 1px solid #4a90e2;
 }
 
-body #searchMainStats,
-body #searchTempStats { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-
-body #mainStatsInput,
-body #tempStatsInput { 
-    background-color: #f4ecd8; 
-    border: 1px solid #c4a484; 
-    color: #5b4636; 
-    padding: 8px; 
-    border-radius: 4px; 
-    width: 100%; 
-    box-sizing: border-box; 
+body.nightmode #editStats,
+body.nightmode #editTemps {
+    background-color: #252525;
+    color: #4a90e2;
+    border: 1px solid #4a90e2;
 }
-
-body #resultDisplayMain div,
-body #resultDisplayTemp div { 
-    background-color: #f4ecd8; 
-    border: 1px solid #c4a484; 
-    padding: 8px; 
-    border-radius: 4px; 
-    margin-bottom: 4px; 
-}
-
-body #statSaveMain,
-body #statSaveTemp { 
-    padding: 6px 14px; 
-    border-radius: 5px; 
-    border: none; 
-    cursor: pointer; 
-    transition: background 0.3s; 
-}
-
-body #statSaveMain:hover,
-body #statSaveTemp:hover { background-color: #a07b56; }
 
 body #closeMainStats,
 body #closeTempStats,
-body #closeEditorDiv { 
-    background-color: #b35a45; 
-    color: #f5f5f5; 
-    padding: 6px 14px; 
-    border-radius: 5px; 
-    border: none; 
-    cursor: pointer; 
-    transition: background 0.3s; 
+body #closeEditorDiv {
+    background-color: #b35a45;
+    color: #f5f5f5;
+    padding: 6px 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s;
 }
-
 body #closeMainStats:hover,
 body #closeTempStats:hover,
-body #closeEditorDiv:hover { background-color: #914530; }
+body #closeEditorDiv:hover {
+    background-color: #914530;
+}
 
+body.whitemode #closeMainStats,
+body.whitemode #closeTempStats,
+body.whitemode #closeEditorDiv {
+    background-color: #d9534f;
+    color: #ffffff;
+}
+body.whitemode #closeMainStats:hover,
+body.whitemode #closeTempStats:hover,
+body.whitemode #closeEditorDiv:hover {
+    background-color: #b9413b;
+}
+
+body.nightmode #closeMainStats,
+body.nightmode #closeTempStats,
+body.nightmode #closeEditorDiv {
+    background-color: #d9534f;
+    color: #f5f5f5;
+}
+body.nightmode #closeMainStats:hover,
+body.nightmode #closeTempStats:hover,
+body.nightmode #closeEditorDiv:hover {
+    background-color: #b9413b;
+}
+
+body #unfreezeAll {
+    background-color: #e7dfc8;
+    color: #5b4636;
+    border: 1px solid #c4a484;
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+}
+body #unfreezeAll:hover {
+    background-color: #d6c4a2;
+}
+
+body.whitemode #unfreezeAll {
+    background-color: #f0f4e3;
+    color: #121212;
+    border: 1px solid #ccc0ae;
+}
+body.whitemode #unfreezeAll:hover {
+    background-color: #c6e466;
+}
+body.nightmode #unfreezeAll {
+    background-color: #d1d8b8;
+    color: #121212;
+    border: 1px solid #ccc0ae;
+}
+body.nightmode #unfreezeAll:hover {
+    background-color: #e6c472;
+}
+body #searchMainStats,
+body #searchTempStats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+body #mainStatsInput,
+body #tempStatsInput {
+  background-color: #f4ecd8;
+  border: 1px solid #c4a484;
+  color: #000000;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+body.whitemode #mainStatsInput,
+body.whitemode #tempStatsInput {
+  background-color: #ffffff;
+  border: 1px solid #4a90e2;
+  color: #121212;
+}
+
+body.nightmode #mainStatsInput,
+body.nightmode #tempStatsInput {
+    background-color: #252525;
+    border: 1px solid #4a90e2;
+    color: #e0e0e0;
+}
+
+body #resultDisplayMain div,
+body #resultDisplayTemp div {
+  background-color: rgb(238,237,234);
+  border: 1px solid #c4a484;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+body.whitemode #resultDisplayMain div,
+body.whitemode #resultDisplayTemp div {
+  background-color: #f5f2f2;
+  border: 1px solid #4a90e2;
+}
+body.nightmode #resultDisplayMain div,
+body.nightmode #resultDisplayTemp div {
+    background-color: #595a5c;
+    border: 1px solid #4a90e2;
+}
 body #resultDisplayMain input,
-body #resultDisplayTemp input { 
-    background-color: #f4ecd8; 
-    border: 1px solid #c4a484; 
-    color: #5b4636; 
-    padding: 6px; 
-    border-radius: 4px; 
-    width: 60%; 
-    box-sizing: border-box; 
-    margin-left: 7px; 
+body #resultDisplayTemp input {
+  background-color: #f4ecd8;
+  border: 1px solid #c4a484;
+  color: #5b4636;
+  padding: 6px;
+  border-radius: 4px;
+  width: 60%;
+  box-sizing: border-box;
+  margin-left: 7px;
+}
+
+
+body.whitemode #resultDisplayMain input,
+body.whitemode #resultDisplayTemp input {
+  background-color: #ffffff;
+  border: 1px solid #4a90e2;
+  color: #121212;
+}
+
+body.nightmode #resultDisplayMain input,
+body.nightmode #resultDisplayTemp input {
+    background-color: #1a1a1a;
+    border: 1px solid #4a90e2;
+    color: #e0e0e0;
+}
+
+body #resultDisplayMain input[type="checkbox"],
+body #resultDisplayTemp input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 3px;
+}
+
+body #resultDisplayMain input[type="checkbox"]:hover,
+body #resultDisplayTemp input[type="checkbox"]:hover {
+  filter: brightness(1.1);
+}
+
+body #resultDisplayMain input[type="checkbox"]:focus,
+body #resultDisplayTemp input[type="checkbox"]:focus {
+  outline: rgba(196, 164, 132, 0.8) solid 2px;
+  box-shadow: 0 0 6px rgba(196, 164, 132, 0.8);
+}
+body #statSaveMain,
+body #statSaveTemp {
+  padding: 6px 14px;
+  border-radius: 5px;
+    border: 1px solid;
+    background-color: rgb(11,85,219);
+    color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+body #statSaveMain:hover,
+body #statSaveTemp:hover {
+  background-color: rgb(124,160,226);
 }
 
 body button:focus,
-body input:focus { 
-    outline: 0; 
-    box-shadow: 0 0 8px rgba(196, 164, 132, 0.8); 
+body input:focus {
+  outline: 0;
+  box-shadow: 0 0 8px rgba(196, 164, 132, 0.8);
 }
 
-body .alertify-message { color: #5b4636 !important; }
-
-body #resultDisplayMain input[type=checkbox],
-body #resultDisplayTemp input[type=checkbox] { 
-    width: 18px; 
-    height: 18px; 
-    cursor: pointer; 
-    accent-color: #c4a484; 
-    margin-left: 8px; 
-    vertical-align: middle; 
-    border-radius: 3px; 
-}
-
-body #resultDisplayMain input[type=checkbox]:hover,
-body #resultDisplayTemp input[type=checkbox]:hover { filter: brightness(1.1); }
-
-body #resultDisplayMain input[type=checkbox]:focus,
-body #resultDisplayTemp input[type=checkbox]:focus { 
-    outline: rgba(196, 164, 132, 0.8) solid 2px; 
-    box-shadow: 0 0 6px rgba(196, 164, 132, 0.8); 
-}
-
-body #unfreezeAll { 
-    background-color: #e7dfc8; 
-    color: #5b4636; 
-    border: 1px solid #c4a484; 
-    border-radius: 4px; 
-    padding: 6px 14px; 
-    cursor: pointer; 
-    transition: background 0.3s, color 0.3s; 
-}
-
-body #unfreezeAll:hover { background-color: #d6c4a2; }
-
-        body.nightmode .hardy { color: #e0e0e0 !important; }
- body.nightmode #editStats:hover,
- body.nightmode #editTemps:hover,
- body.nightmode #statSaveMain,
- body.nightmode #statSaveTemp { background-color: #4a90e2; color: #121212; }
- body.nightmode .hide { display: none !important; }
- body.nightmode .disabled { pointer-events: none !important; opacity: 0.5; }
- body.nightmode .hardy { 
-     display: block; 
-     background-color: #1e1e1e !important; 
-     border: 1px solid #4a90e2; 
-     border-radius: 10px; 
-     padding: 12px; 
-     margin-top: 12px; 
-     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); 
- }
- body.nightmode .hardy_buttons_div { display: flex; gap: 8px; margin-bottom: 12px; }
- body.nightmode #editStats,
- body.nightmode #editTemps { 
-     background-color: #252525; 
-     color: #4a90e2; 
-     border: 1px solid #4a90e2; 
-     border-radius: 4px; 
-     padding: 6px 14px; 
-     cursor: pointer; 
-     transition: background 0.3s, color 0.3s; 
- }
- body.nightmode #searchMainStats,
- body.nightmode #searchTempStats { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
- body.nightmode #mainStatsInput,
- body.nightmode #tempStatsInput { 
-     background-color: #252525; 
-     border: 1px solid #4a90e2; 
-     color: #e0e0e0; 
-     padding: 8px; 
-     border-radius: 4px; 
-     width: 100%; 
-     box-sizing: border-box; 
- }
- body.nightmode #resultDisplayMain div,
- body.nightmode #resultDisplayTemp div { 
-     background-color: #252525; 
-     border: 1px solid #4a90e2; 
-     padding: 8px; 
-     border-radius: 4px; 
-     margin-bottom: 4px; 
- }
- body.nightmode #statSaveMain,
- body.nightmode #statSaveTemp { 
-     padding: 6px 14px; 
-     border-radius: 5px; 
-     border: none; 
-     cursor: pointer; 
-     transition: background 0.3s; 
- }
- body.nightmode #statSaveMain:hover,
- body.nightmode #statSaveTemp:hover { background-color: #3a7cc7; }
- body.nightmode #closeMainStats,
- body.nightmode #closeTempStats,
- body.nightmode #closeEditorDiv { 
-     background-color: #d9534f; 
-     color: #f5f5f5; 
-     padding: 6px 14px; 
-     border-radius: 5px; 
-     border: none; 
-     cursor: pointer; 
-     transition: background 0.3s; 
- }
- body.nightmode #closeMainStats:hover,
- body.nightmode #closeTempStats:hover,
- body.nightmode #closeEditorDiv:hover { background-color: #b9413b; }
- body.nightmode #resultDisplayMain input,
- body.nightmode #resultDisplayTemp input { 
-     background-color: #1a1a1a; 
-     border: 1px solid #4a90e2; 
-     color: #e0e0e0; 
-     padding: 6px; 
-     border-radius: 4px; 
-     width: 60%; 
-     box-sizing: border-box; 
-     margin-left: 7px; 
- }
- body.nightmode button:focus,
- body.nightmode input:focus { outline: 0; box-shadow: 0 0 8px rgba(74, 144, 226, 0.8); }
- body.nightmode .alertify-message { color: #352d2d !important; }
- body.nightmode #resultDisplayMain input[type=checkbox],
- body.nightmode #resultDisplayTemp input[type=checkbox] { 
-     width: 18px; 
-     height: 18px; 
-     cursor: pointer; 
-     accent-color: #4a90e2; 
-     margin-left: 8px; 
-     vertical-align: middle; 
-     border-radius: 3px; 
- }
- body.nightmode #resultDisplayMain input[type=checkbox]:hover,
- body.nightmode #resultDisplayTemp input[type=checkbox]:hover { filter: brightness(1.2); }
- body.nightmode #resultDisplayMain input[type=checkbox]:focus,
- body.nightmode #resultDisplayTemp input[type=checkbox]:focus { 
-     outline: rgba(74, 144, 226, 0.8) solid 2px; 
-     box-shadow: 0 0 6px rgba(74, 144, 226, 0.8); 
- }
- body.nightmode #unfreezeAll { 
-     background-color: #d1d8b8; 
-     color: #121212; 
-     border: 1px solid #ccc0ae; 
-     border-radius: 4px; 
-     padding: 6px 14px; 
-     cursor: pointer; 
-     transition: background 0.3s, color 0.3s; 
- }
- body.nightmode #unfreezeAll:hover { background-color: #c6e466; }
- 
- 
- body.whitemode .hardy { color: #121212 !important; }
- body.whitemode #editStats:hover,
- body.whitemode #editTemps:hover,
- body.whitemode #statSaveMain,
- body.whitemode #statSaveTemp { background-color: #4a90e2; color: #ffffff; }
- body.whitemode .hide { display: none !important; }
- body.whitemode .disabled { pointer-events: none !important; opacity: 0.5; }
- body.whitemode .hardy { 
-     display: block; 
-     background-color: #f5f5f5 !important; 
-     border: 1px solid #4a90e2; 
-     border-radius: 10px; 
-     padding: 12px; 
-     margin-top: 12px; 
-     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); 
- }
- body.whitemode .hardy_buttons_div { display: flex; gap: 8px; margin-bottom: 12px; }
- body.whitemode #editStats,
- body.whitemode #editTemps { 
-     background-color: #e0e0e0; 
-     color: #4a90e2; 
-     border: 1px solid #4a90e2; 
-     border-radius: 4px; 
-     padding: 6px 14px; 
-     cursor: pointer; 
-     transition: background 0.3s, color 0.3s; 
- }
- body.whitemode #searchMainStats,
- body.whitemode #searchTempStats { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
- body.whitemode #mainStatsInput,
- body.whitemode #tempStatsInput { 
-     background-color: #ffffff; 
-     border: 1px solid #4a90e2; 
-     color: #121212; 
-     padding: 8px; 
-     border-radius: 4px; 
-     width: 100%; 
-     box-sizing: border-box; 
- }
- body.whitemode #resultDisplayMain div,
- body.whitemode #resultDisplayTemp div { 
-     background-color: #ffffff; 
-     border: 1px solid #4a90e2; 
-     padding: 8px; 
-     border-radius: 4px; 
-     margin-bottom: 4px; 
- }
- body.whitemode #statSaveMain,
- body.whitemode #statSaveTemp { 
-     padding: 6px 14px; 
-     border-radius: 5px; 
-     border: none; 
-     cursor: pointer; 
-     transition: background 0.3s; 
- }
- body.whitemode #statSaveMain:hover,
- body.whitemode #statSaveTemp:hover { background-color: #3a7cc7; }
- body.whitemode #closeMainStats,
- body.whitemode #closeTempStats,
- body.whitemode #closeEditorDiv { 
-     background-color: #d9534f; 
-     color: #ffffff; 
-     padding: 6px 14px; 
-     border-radius: 5px; 
-     border: none; 
-     cursor: pointer; 
-     transition: background 0.3s; 
- }
- body.whitemode #closeMainStats:hover,
- body.whitemode #closeTempStats:hover,
- body.whitemode #closeEditorDiv:hover { background-color: #b9413b; }
- body.whitemode #resultDisplayMain input,
- body.whitemode #resultDisplayTemp input { 
-     background-color: #ffffff; 
-     border: 1px solid #4a90e2; 
-     color: #121212; 
-     padding: 6px; 
-     border-radius: 4px; 
-     width: 60%; 
-     box-sizing: border-box; 
-     margin-left: 7px; 
- }
- body.whitemode button:focus,
- body.whitemode input:focus { outline: 0; box-shadow: 0 0 8px rgba(74, 144, 226, 0.8); }
- body.whitemode .alertify-message { color: #121212 !important; }
- body.whitemode #resultDisplayMain input[type=checkbox],
- body.whitemode #resultDisplayTemp input[type=checkbox] { 
-     width: 18px; 
-     height: 18px; 
-     cursor: pointer; 
-     accent-color: #4a90e2; 
-     margin-left: 8px; 
-     vertical-align: middle; 
-     border-radius: 3px; 
- }
- body.whitemode #resultDisplayMain input[type=checkbox]:hover,
- body.whitemode #resultDisplayTemp input[type=checkbox]:hover { filter: brightness(0.9); }
- body.whitemode #resultDisplayMain input[type=checkbox]:focus,
- body.whitemode #resultDisplayTemp input[type=checkbox]:focus { 
-     outline: rgba(74, 144, 226, 0.8) solid 2px; 
-     box-shadow: 0 0 6px rgba(74, 144, 226, 0.8); 
- }
- body.whitemode #unfreezeAll { 
-     background-color: #f0f4e3; 
-     color: #121212; 
-     border: 1px solid #ccc0ae; 
-     border-radius: 4px; 
-     padding: 6px 14px; 
-     cursor: pointer; 
-     transition: background 0.3s, color 0.3s; 
- }
- body.whitemode #unfreezeAll:hover { background-color: #c6e466; }
  
         `);    
+
 
 //size changing 
 //addStyle(`body{background-color:#121212!important}#main{font-size:20px!important} body{color:#e0e0e0!important}`)
 
+
+
+ensureDocumentAccessible().then(() => {
+    document.body.classList.add("nightmode");
+    addStyle(`#main{font-size:20px!important}`);
+});
 })();
+
+
+const originalSet = Scene.prototype.set;
+
+Scene.prototype.set = function (line) {
+    var stack = this.tokenizeExpr(line);
+    var variable = this.evaluateReference(stack);
+
+    if ("undefined" === typeof this.temps[variable] && "undefined" === typeof this.stats[variable]) {
+        throw new Error(this.lineMsg() + "Non-existent variable '" + variable + "'");
+    }
+
+//
+    const lowerCaseVariable = variable.toLowerCase();
+    if ("undefined" !== typeof this.stats[lowerCaseVariable]) {
+        const frozen = window.frozenStats || [];
+        if (frozen.includes(lowerCaseVariable)) {
+            return;
+        }
+    } else if ("undefined" !== typeof this.temps[lowerCaseVariable]) {
+        if (this.name === window.frozenScene) {
+            const frozenTemps = window.frozenTemps || [];
+            if (frozenTemps.includes(lowerCaseVariable)) {
+                return;
+            }
+        }
+    }
+    // 
+
+    if (stack.length === 0) {
+        throw new Error(this.lineMsg() + "Invalid set instruction, no expression specified: " + line);
+    }
+
+    if (/OPERATOR|FAIRMATH/.test(stack[0].name)) {
+        stack.unshift({ name: "VAR", value: variable, pos: "(implicit)" });
+    }
+
+    var value = this.evaluateExpr(stack);
+    this.setVar(variable, value);
+};
