@@ -37,5 +37,6 @@ This tool is provided as-is, with no guarantees of maintenance or support. I tak
 - Click on Save.
 
 
-
+### Note
+If you are exporting the game using Compile.html file given by the choicescript folder, then make to edit the `index.html` file in **mygame** folder to remove the changes you made. Otherwise the this script will also get embedded in the exported html file.
 
